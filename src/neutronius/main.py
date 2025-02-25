@@ -1,5 +1,6 @@
-from neutronius.game import game
+from neutronius.game import Game
 
 
 if __name__ == "__main__":
-    game.setup(1000, 1000)
+    g = Game()
+    g.setup(1000, 1000)

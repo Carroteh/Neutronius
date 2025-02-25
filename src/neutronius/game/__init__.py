@@ -1,2 +1,2 @@
-from .game import setup
+from .Game import Game
 from .Entity import Entity

@@ -19,6 +19,9 @@ class BlackHole(Entity):
 
         super().__init__(position, velocity, radius, (0,0,255),  screen_width, screen_height)
 
+    def update(self, dt):
+        return super().update(dt)
+
 
 class Ball:
     def __init__(self, screen, width: int, height: int):
