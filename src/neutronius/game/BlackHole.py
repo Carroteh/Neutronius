@@ -5,6 +5,8 @@ import pygame
 
 class BlackHole(Entity):
     def __init__(self, screen_width, screen_height):
+        self.time = pygame.time.get_ticks()
+
         radius = 10
 
         ball_x = float(random.randint(0, screen_width-radius*2))
@@ -20,6 +22,8 @@ class BlackHole(Entity):
         super().__init__(position, velocity, radius, (0,0,255),  screen_width, screen_height)
 
     def update(self, dt):
+        if pygame.time.get_ticks() - self.time >= 20000:
+            self.kill()
         return super().update(dt)
 
 
