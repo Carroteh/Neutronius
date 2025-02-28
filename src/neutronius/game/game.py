@@ -1,5 +1,6 @@
 import pygame 
 import asyncio
+import threading
 from .BlackHole import BlackHole
 from .Neutronius import Neutronius
 from .Director import Director
@@ -21,7 +22,6 @@ class Game:
         pass
 
     def update(self, dt, event_list) -> None:
-        self.director.implore(10)
         self.black_holes.update(dt)
         self.player.update(event_list, dt)
         self.screen.fill(self.bg_colour)
@@ -35,6 +35,8 @@ class Game:
     
         # pygame loop
         run = True 
+        # Run the director as a task
+        self.director.start()
 
         while run:
             dt = clock.tick(fps)
@@ -44,6 +46,7 @@ class Game:
             for event in events:
                 if event.type == pygame.QUIT:
                     run = False
+                    self.director.stop()
 
             key = pygame.key.get_pressed()
             if key[pygame.K_n]:
