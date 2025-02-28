@@ -16,10 +16,16 @@ class Game:
         self.player.add(Neutronius(width, height))
         self.score = 0
         self.director = Director(self.player, self.black_holes, None, width, height)
+        self.run = False
         pygame.init()
 
-    def check_collision(self):
-        pass
+    def check_collision(self) -> None:
+        pygame.sprite.groupcollide(self.black_holes, self.player, False, True)
+
+        if len(self.player) == 0:
+            self.player.add(Neutronius(self.width, self.height))
+            print("game over!")
+            #self.run = False
 
     def update(self, dt, event_list) -> None:
         self.black_holes.update(dt)
@@ -29,23 +35,22 @@ class Game:
         self.player.draw(self.screen)
 
     def start(self) -> None:
+        self.run = True
         fps = 60
         clock = pygame.time.Clock()
         bg_colour = (255,255,255)
     
-        # pygame loop
-        run = True 
         # Run the director as a task
         self.director.start()
 
-        while run:
+        while self.run:
             dt = clock.tick(fps)
             self.screen.fill(bg_colour)
             events = pygame.event.get()
 
             for event in events:
                 if event.type == pygame.QUIT:
-                    run = False
+                    self.run = False
                     self.director.stop()
 
             key = pygame.key.get_pressed()
@@ -62,11 +67,7 @@ class Game:
             # Text
             self.screen.blit(text, textRect)
 
-            pygame.sprite.groupcollide(self.black_holes, self.player, False, True)
-
-            if len(self.player) == 0:
-                print("game over!")
-                run = False
+            self.check_collision()
 
             # Update display
             self.score += 1/60
