@@ -5,6 +5,7 @@ from .Director import Director
 class Neutronius(Entity):
     def __init__(self, screen_width, screen_height):
         self.last_click_pos = pygame.math.Vector2(0,0)
+        self.hp = 100
         radius = 11
         position = pygame.math.Vector2(screen_width//2, screen_height//2)
         velocity = pygame.math.Vector2(-100, 100)
@@ -15,6 +16,7 @@ class Neutronius(Entity):
 
     def update(self, event_list, dt):
         '''Updates the player position and handle left click events'''
+        self.hp -= 0.01
         for event in event_list:
             # Detect left click
             if event.type == pygame.MOUSEBUTTONDOWN:

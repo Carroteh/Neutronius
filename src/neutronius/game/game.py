@@ -11,28 +11,40 @@ class Game:
         self.height = height
         self.screen = pygame.display.set_mode((self.width, self.height), flags=pygame.HWSURFACE)
         self.bg_colour = (255,255,255)
-        self.black_holes : pygame.sprite.Group = pygame.sprite.Group()
-        self.player : pygame.sprite.Group = pygame.sprite.Group()
-        self.player.add(Neutronius(width, height))
+        self.entities = {}
+        self.entities['blackholes'] = pygame.sprite.Group()
+        self.entities['player'] = pygame.sprite.Group(Neutronius(width, height))
+        self.entities['shield'] = pygame.sprite.Group()
+        self.entities['electron'] = pygame.sprite.Group()
         self.score = 0
-        self.director = Director(self.player, self.black_holes, None, width, height)
+        self.director = Director(self.entities, width, height)
         self.run = False
         pygame.init()
 
     def check_collision(self) -> None:
-        pygame.sprite.groupcollide(self.black_holes, self.player, False, True)
+        pygame.sprite.groupcollide(self.entities['blackholes'], self.entities['player'], False, True)
+        shield_collide = pygame.sprite.groupcollide(self.entities['player'], self.entities['shield'], False, True)
+        electron_collide = pygame.sprite.groupcollide(self.entities['player'], self.entities['electron'], False, True)
 
-        if len(self.player) == 0:
-            self.player.add(Neutronius(self.width, self.height))
+        if len(electron_collide) != 0:
+            self.entities['player'].sprites()[0].hp = 100
+
+        if len(self.entities['player']) == 0:
+            self.entities['player'].add(Neutronius(self.width, self.height))
             print("game over!")
             #self.run = False
 
     def update(self, dt, event_list) -> None:
-        self.black_holes.update(dt)
-        self.player.update(event_list, dt)
+        self.entities['blackholes'].update(dt)
+        self.entities['player'].update(event_list, dt)
+        self.entities['electron'].update(dt)
+        self.entities['shield'].update(dt)
         self.screen.fill(self.bg_colour)
-        self.black_holes.draw(self.screen)
-        self.player.draw(self.screen)
+
+        self.entities['blackholes'].draw(self.screen)
+        self.entities['player'].draw(self.screen)
+        self.entities['electron'].draw(self.screen)
+        self.entities['shield'].draw(self.screen)
 
     def start(self) -> None:
         self.run = True
@@ -56,12 +68,12 @@ class Game:
             key = pygame.key.get_pressed()
             if key[pygame.K_n]:
                 b = BlackHole(self.width, self.height)
-                self.black_holes.add(b)
+                self.entities['blackholes'].add(b)
 
             self.update(dt, events)
 
             font = pygame.font.Font('freesansbold.ttf', 32)
-            text = font.render(f'{int(self.score)}', True, (0,255,0), bg_colour)
+            text = font.render(f'SCORE: {int(self.score)}   HP: {int(self.entities['player'].sprites()[0].hp)}', True, (0,255,0), bg_colour)
             textRect = text.get_rect()
             textRect.center = (self.width//2, 35)
             # Text

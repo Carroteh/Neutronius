@@ -23,9 +23,9 @@ class Entity(pygame.sprite.Sprite):
         screen_w, screen_h = self.screen_size
 
         # Bounce off of walls
-        if x<=0 or x+self.radius*2 >= screen_w:
+        if x<=0+self.radius or x+self.radius >= screen_w:
             self.velocity[0] *= -1
-        if y<=0 or y+self.radius*2 >= screen_h:
+        if y<=0+self.radius or y+self.radius >= screen_h:
             self.velocity[1] *= -1
 
         self.position += self.velocity * dt / 1000
