@@ -3,6 +3,7 @@ import asyncio
 import threading
 import time
 import random
+from conf.conf import *
 from .BlackHole import BlackHole
 from .Shield import Shield
 from .Electron import Electron
@@ -31,16 +32,16 @@ class Director:
                 self.entities['blackholes'].add(b)
 
             if len(self.entities['shield']) == 0:
-                x = random.randrange(0, self.screen_size[0])
-                y = random.randrange(0, self.screen_size[1])
-                pos = pygame.math.Vector2(x, y)
+                grid_x = random.randint(0, NUM_COLS - 1)
+                grid_y = random.randint(0, NUM_ROWS - 1)
+                pos = pygame.math.Vector2(grid_x, grid_y)
                 s = Shield(pos, self.screen_size[0], self.screen_size[1])
                 self.entities['shield'].add(s)
 
             if len(self.entities['electron']) == 0:
-                x = random.randrange(0, self.screen_size[0])
-                y = random.randrange(0, self.screen_size[1])
-                pos = pygame.math.Vector2(x, y)
+                grid_x = random.randint(0, NUM_COLS - 1)
+                grid_y = random.randint(0, NUM_ROWS - 1)
+                pos = pygame.math.Vector2(grid_x, grid_y)
                 e = Electron(pos, self.screen_size[0], self.screen_size[1])
                 self.entities['electron'].add(e)
 

@@ -34,12 +34,23 @@ class Game:
             print("game over!")
             #self.run = False
 
+    def draw_grid(self):
+        grid_size = 25  # 500 / 20 = 25 pixel grid
+        color = (200, 200, 200)  # Light gray for visibility
+        for x in range(0, self.width, grid_size):
+            pygame.draw.line(self.screen, color, (x, 0), (x, self.height))
+        for y in range(0, self.height, grid_size):
+            pygame.draw.line(self.screen, color, (0, y), (self.width, y))
+
     def update(self, dt, event_list) -> None:
         self.entities['blackholes'].update(dt)
         self.entities['player'].update(event_list, dt)
         self.entities['electron'].update(dt)
         self.entities['shield'].update(dt)
         self.screen.fill(self.bg_colour)
+
+        # Draw the grid first
+        self.draw_grid()
 
         self.entities['blackholes'].draw(self.screen)
         self.entities['player'].draw(self.screen)
@@ -48,16 +59,20 @@ class Game:
 
     def start(self) -> None:
         self.run = True
-        fps = 60
+        fps = 5
         clock = pygame.time.Clock()
         bg_colour = (255,255,255)
     
         # Run the director as a task
         self.director.start()
 
+        # For fixed timestep logic
+        logic_update_time = 200  # milliseconds (5 updates per second)
+        last_update_time = pygame.time.get_ticks()
+
         while self.run:
             dt = clock.tick(fps)
-            self.screen.fill(bg_colour)
+            #self.screen.fill(bg_colour)
             events = pygame.event.get()
 
             for event in events:
@@ -70,7 +85,12 @@ class Game:
                 b = BlackHole(self.width, self.height)
                 self.entities['blackholes'].add(b)
 
-            self.update(dt, events)
+            # Control the speed of game logic updates
+            current_time = pygame.time.get_ticks()
+            if current_time - last_update_time >= logic_update_time:
+                self.update(logic_update_time, events)  # Slow down logic updates
+                self.check_collision()
+                last_update_time = current_time
 
             font = pygame.font.Font('freesansbold.ttf', 32)
             text = font.render(f'SCORE: {int(self.score)}   HP: {int(self.entities['player'].sprites()[0].hp)}', True, (0,255,0), bg_colour)

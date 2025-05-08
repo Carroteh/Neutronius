@@ -1,4 +1,5 @@
 from .Entity import Entity
+from conf.conf import *
 
 import random
 import pygame
@@ -9,13 +10,13 @@ class BlackHole(Entity):
 
         radius = 10
 
-        ball_x = float(random.randint(0, screen_width-radius*2))
-        ball_y = float(random.randint(0, screen_height-radius*2))
+        ball_x = random.randint(0, GRID_WIDTH-1)
+        ball_y = random.randint(0, GRID_HEIGHT-1)
 
         position = pygame.math.Vector2(ball_x, ball_y)
 
-        speed_x = random.randint(-200, 200)
-        speed_y = random.randint(-200, 200)
+        speed_x = random.randint(-1, 1)
+        speed_y = random.randint(-1, 1)
 
         velocity = pygame.math.Vector2(speed_x, speed_y)
 
