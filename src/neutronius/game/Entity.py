@@ -18,6 +18,9 @@ class Entity(pygame.sprite.Sprite):
         # Top left of the rectangle is on our 'position'
         self.rect = self.image.get_rect(center=self.pixel_position())
 
+    def get_state(self):
+        return self.grid_pos[0], self.grid_pos[1]
+
     def pixel_position(self):
         pos = (self.grid_pos.x * GRID_WIDTH + GRID_WIDTH // 2,
                self.grid_pos.y * GRID_HEIGHT + GRID_HEIGHT // 2)
@@ -28,9 +31,9 @@ class Entity(pygame.sprite.Sprite):
         pos = self.grid_pos
         screen_w, screen_h = self.screen_size
 
-        if pos.x + self.velocity.x < 0 or pos.x + self.velocity.x > NUM_COLS:
+        if pos.x + self.velocity.x < 0 or pos.x + self.velocity.x + 1 > NUM_COLS:
             self.velocity[0] *= -1
-        elif pos.y + self.velocity.y < 0 or pos.y + self.velocity.y > NUM_ROWS:
+        elif pos.y + self.velocity.y < 0 or pos.y + self.velocity.y + 1 > NUM_ROWS:
             self.velocity[1] *= -1
 
         # # Bounce off of walls

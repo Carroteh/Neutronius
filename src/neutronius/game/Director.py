@@ -17,7 +17,7 @@ class Director:
         self.thread = threading.Thread(target=self.implore, daemon=True)  # Create a background thread
 
     def _determineScaling(self, time) -> int:
-        return 3
+        return 6
 
     # Have the director do his job (direct things)
     def implore(self, timer=None) -> None:
@@ -27,16 +27,16 @@ class Director:
             scaling = self._determineScaling(time)
 
             for b in range (0, scaling-len(self.entities['blackholes'])):
-                time.sleep(1)
+                #time.sleep(1)
                 b = BlackHole(self.screen_size[0], self.screen_size[1])
                 self.entities['blackholes'].add(b)
 
-            if len(self.entities['shield']) == 0:
-                grid_x = random.randint(0, NUM_COLS - 1)
-                grid_y = random.randint(0, NUM_ROWS - 1)
-                pos = pygame.math.Vector2(grid_x, grid_y)
-                s = Shield(pos, self.screen_size[0], self.screen_size[1])
-                self.entities['shield'].add(s)
+            # if len(self.entities['shield']) == 0:
+            #     grid_x = random.randint(0, NUM_COLS - 1)
+            #     grid_y = random.randint(0, NUM_ROWS - 1)
+            #     pos = pygame.math.Vector2(grid_x, grid_y)
+            #     s = Shield(pos, self.screen_size[0], self.screen_size[1])
+            #     self.entities['shield'].add(s)
 
             if len(self.entities['electron']) == 0:
                 grid_x = random.randint(0, NUM_COLS - 1)
