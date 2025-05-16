@@ -6,9 +6,11 @@ from conf.conf import ACTIONS
 import random
 
 class Agent:
-    def __init__(self, get_state: Callable):
+    def __init__(self, get_state: Callable, seed: int):
         try:
-            f = open("qtables/qtable.b", "rb")
+            file = f"qtables/qtable{str(seed)}.b"
+            f = open(file, "rb")
+            print(f"Loading Q-table {file}")
             self._qTable = pickle.load(f)
             f.close()
         except Exception:
@@ -16,6 +18,7 @@ class Agent:
         self._epsilon = 1.0
         self._alpha = 0.1
         self._gamma = 0.9
+        self._seed = seed
         self._get_state = get_state
         self._last_state = ()
         self._last_reward = 0
@@ -26,9 +29,10 @@ class Agent:
     def act(self):
         action = ''
         state = self._get_state()
-        print(f"Current state: {state}")
+        #print(f"Current state: {state}")
         if not self._training:
-            pass
+            action = self._qTable.get_best_action(state)
+            print(f"Performing best action: {action}")
         else:
             # Update Q-value based on reward from previous action
             print(f"Rewarded for action: {self._last_reward}")
@@ -55,10 +59,18 @@ class Agent:
             self._last_state = state
             self._last_action = action
 
-        if self._epsilon > 0.1:
-            self._epsilon *= 0.9999
+        if self._epsilon > 0.2:
+            self._epsilon *= 0.999
         return action
 
+
+    @property
+    def epsilon(self):
+        return self._epsilon
+
+    @epsilon.setter
+    def epsilon(self, epsilon):
+        self._epsilon = epsilon
 
     @property
     def reward(self):

@@ -3,7 +3,6 @@ from typing import overload
 from .Entity import Entity
 from conf.conf import *
 import pygame
-from .Director import Director
 from ..core.Agent import Agent
 
 class Neutronius(Entity):

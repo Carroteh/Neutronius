@@ -1,3 +1,5 @@
+import random
+
 from conf.conf import ACTIONS
 
 class QTable:
@@ -11,12 +13,12 @@ class QTable:
 
     def get_q_row(self, state):
         if state not in self.table:
-            self.table[state] = [0.0 for _ in ACTIONS]
+            self.table[state] = [random.uniform(-1.0, 1.0) for _ in ACTIONS]
         return self.table[state]
 
     def update_q_val(self, new_state, last_state, last_action, last_reward, gamma, alpha):
         if last_state not in self.table:
-            self.table[last_state] = [0.0 for _ in ACTIONS]
+            self.table[last_state] = [random.uniform(-1.0, 1.0)  for _ in ACTIONS]
 
         # Get the Q value from the previous state and action
         prev_q_val_row = self.get_q_row(last_state)
