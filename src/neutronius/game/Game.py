@@ -23,21 +23,20 @@ class Game:
         self.bg_colour = (255,255,255)
         self.entities = {}
         self.electrons_collected = 0
-        self.episodes = episodes
         self.deaths = 0
         self.latest_electrons_pre_death = 0
+        self.score = 0
+        self.high_score = 0
+        self.episodes = episodes
         self.seed = seed
         self.training = training
-        self.died = False
         self.agent = Agent(self.get_state, seed)
         self.agent.training = self.training
         self.entities['blackholes'] = pygame.sprite.Group()
         self.entities['player'] = pygame.sprite.Group()
         # self.entities['shield'] = pygame.sprite.Group()
         self.entities['electron'] = pygame.sprite.Group()
-        self.score = 0
         self.prev_dist = int(math.sqrt(pow(NUM_ROWS, 2) + pow(NUM_COLS, 2)))
-        self.high_score = 0
         self.director = Director(self.entities, width, height)
         self.run = False
 
@@ -73,7 +72,6 @@ class Game:
         blackhole_distances = sorted([(int(player_pos.distance_to(x[0])), x[1].x, x[1].y) for x in blackhole_states], key= lambda x: x[0])
         blackhole_data = tuple(chain.from_iterable(blackhole_distances[:2]))
 
-
         # Distance between player and electron
         dist_electron = int(player_pos.distance_to(electron_pos))
 
@@ -82,7 +80,7 @@ class Game:
 
         dx = electron_pos[0] - player_pos[0]
         dy = electron_pos[1] - player_pos[1]
-        angle_to_electron = (math.atan(dy/dx)) * (180 / math.pi) if dx != 0 else 0.0
+        angle_to_electron = (math.atan2(dy,dx)) * (180 / math.pi) if dx != 0 else 0.0
 
         if angle_to_electron != 0.0:
             angle_to_electron  = angle_to_electron // 10 * 10
@@ -100,15 +98,13 @@ class Game:
         # If the player collides with a blackhole they get a large negative reward
         if len(collides) != 0 or self.entities['player'].sprites()[0].hp <= 0:
             print("game over!")
-            self.latest_electrons_pre_death = 0
-            self.died = True
             self.deaths += 1
             if self.score > self.high_score:
                 self.high_score = self.score
-            self.score = 0
-            # Respawn the player (you're not done yet)
-            self.director.spawn_player(self.agent)
             reward = -500
+            self.latest_electrons_pre_death = 0
+            self.score = 0
+            self.director.spawn_player(self.agent)
         # If the player collides with an electron they get a positive reward
         elif len(electron_collide) != 0:
             self.entities['player'].sprites()[0].hp = 100
@@ -116,7 +112,7 @@ class Game:
             self.electrons_collected += 1
             self.latest_electrons_pre_death += 1
             self.score += 20
-            reward = 300
+            reward = 400
         # Other rewards
         else:
             # Reward based on distance from electron
@@ -128,14 +124,11 @@ class Game:
             reward = 5 if dist < self.prev_dist else -5
             self.prev_dist = dist
 
-
         self.agent.reward = reward
-
-
 
     def draw_grid(self):
         grid_size = 25  # 500 / 20 = 25 pixel grid
-        color = (200, 200, 200)  # Light gray for visibility
+        color = (200, 200, 200)  # Light gray
         for x in range(0, self.width, grid_size):
             pygame.draw.line(self.screen, color, (x, 0), (x, self.height))
         for y in range(0, self.height, grid_size):
@@ -195,12 +188,32 @@ class Game:
         self.entities['electron'].draw(self.screen)
         # self.entities['shield'].draw(self.screen)
 
+
+
+    def reset(self):
+        '''Reset the game state'''
+        self.entities['blackholes'].empty()
+        self.entities['player'].empty()
+        self.entities['electron'].empty()
+        self.director.spawn_player(self.agent)
+        for i in range(6):
+            self.director.spawn_blackhole()
+        self.director.spawn_electron()
+        self.electrons_collected = 0
+        self.latest_electrons_pre_death = 0
+        self.score = 0
+
     def train(self):
         for i in range(self.episodes):
-            self.died = False
-            while not self.died:
-                self.update(0, [])
-                self.calculate_reward()
+            prog = int(i / self.episodes * 100)
+            # if prog % 10 == 0:
+            #     f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
+            #     pickle.dump(self.agent.qTable, f)
+            #     f.close()
+
+            print(f"TRAINING PROGRESS: --- {prog}%")
+            self.update(0, [])
+            self.calculate_reward()
 
         f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
         pickle.dump(self.agent.qTable, f)
@@ -221,9 +234,6 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.run = False
                     # self.plotter.stop()
-                    f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
-                    pickle.dump(self.agent.qTable, f)
-                    f.close()
 
             key = pygame.key.get_pressed()
             if key[pygame.K_n]:
@@ -243,14 +253,8 @@ class Game:
         pygame.quit()
 
     def start(self) -> None:
-        self.director.spawn_player(self.agent)
-        for i in range(6):
-            self.director.spawn_blackhole()
-        self.director.spawn_electron()
+        self.reset()
         if self.training:
            self.train()
         else:
            self.infer()
-
-
-

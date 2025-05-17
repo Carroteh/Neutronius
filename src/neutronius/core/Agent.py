@@ -15,9 +15,9 @@ class Agent:
             f.close()
         except Exception:
             self._qTable = QTable()
-        self._epsilon = 1.0
-        self._alpha = 0.1
-        self._gamma = 0.9
+        self._epsilon = 0.2
+        self._alpha = 0.9
+        self._gamma = 0.95
         self._seed = seed
         self._get_state = get_state
         self._last_state = ()
@@ -59,8 +59,8 @@ class Agent:
             self._last_state = state
             self._last_action = action
 
-        if self._epsilon > 0.2:
-            self._epsilon *= 0.999
+        # if self._epsilon > 0.2:
+        #     self._epsilon *= 0.999
         return action
 
 
