@@ -6,7 +6,12 @@ import pygame
 
 class BlackHole(Entity):
     def __init__(self, screen_width, screen_height):
+
+        # Time the blackhole's existence started
         self.time = pygame.time.get_ticks()
+
+        # Blackholes can live for between 10k-30k ticks
+        self.life = random.randint(10000, 50000)
 
         radius = 10
 
@@ -31,6 +36,7 @@ class BlackHole(Entity):
         return super().get_state(), self.velocity[0], self.velocity[1]
 
     def update(self, dt):
-        # if pygame.time.get_ticks() - self.time >= 20000:
+        # Blackhole dies after its time is up
+        # if pygame.time.get_ticks() - self.time >= self.life:
         #     self.kill()
         return super().update(dt)

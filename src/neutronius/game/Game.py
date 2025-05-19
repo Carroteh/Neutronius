@@ -13,12 +13,14 @@ from plot.plot import Plot
 from .Electron import Electron
 from .Director import Director
 from ..core.Agent import Agent
-
+from ..core.DeepAgent import DeepAgent
 
 class Game:
-    def __init__(self, width: int, height: int, seed:int, training: bool = False, episodes = 10000000):
+    def __init__(self, width: int, height: int, deep: bool, seed:int, training: bool = False, episodes = 10000000):
+        self.died = False
         self.width = width
         self.height = height
+        self.deep = deep
         self.screen = pygame.display.set_mode((self.width + 250, self.height), flags=pygame.HWSURFACE)
         self.bg_colour = (255,255,255)
         self.entities = {}
@@ -30,8 +32,6 @@ class Game:
         self.episodes = episodes
         self.seed = seed
         self.training = training
-        self.agent = Agent(self.get_state, seed)
-        self.agent.training = self.training
         self.entities['blackholes'] = pygame.sprite.Group()
         self.entities['player'] = pygame.sprite.Group()
         # self.entities['shield'] = pygame.sprite.Group()
@@ -39,6 +39,12 @@ class Game:
         self.prev_dist = int(math.sqrt(pow(NUM_ROWS, 2) + pow(NUM_COLS, 2)))
         self.director = Director(self.entities, width, height)
         self.run = False
+
+        if self.deep:
+            self.agent = DeepAgent(11, self.get_state, seed, self.training)
+        else:
+            self.agent = Agent(self.get_state, seed)
+            self.agent.training = self.training
 
         pygame.init()
 
@@ -85,10 +91,12 @@ class Game:
         if angle_to_electron != 0.0:
             angle_to_electron  = angle_to_electron // 10 * 10
 
-        return (player_pos[0], player_pos[1], dist_electron, angle_to_electron, hp) + blackhole_data
+        state = (player_pos[0], player_pos[1], dist_electron, angle_to_electron, hp) + blackhole_data
+        return state
 
     def calculate_reward(self) -> None:
         reward = 0
+        died = False
         c = int(math.sqrt(pow(NUM_ROWS, 2) + pow(NUM_COLS, 2)))
 
         collides = pygame.sprite.groupcollide(self.entities['blackholes'], self.entities['player'], False, True)
@@ -102,6 +110,8 @@ class Game:
             if self.score > self.high_score:
                 self.high_score = self.score
             reward = -500
+            self.died = True
+            died = True
             self.latest_electrons_pre_death = 0
             self.score = 0
             self.director.spawn_player(self.agent)
@@ -120,11 +130,15 @@ class Game:
             electron_pos = self.entities['electron'].sprites()[0].grid_pos
             dist = pygame.math.Vector2.distance_to(player_pos, electron_pos)
 
-            # Ensure higher reward for moving closer to electron and lower reward for moving away from electron
-            reward = 5 if dist < self.prev_dist else -5
+            # Closer = +5
+            # Further = -5
+            # Equal distance = -3
+            reward = 5 if dist < self.prev_dist else (-3 if dist == self.prev_dist else -5)
             self.prev_dist = dist
 
         self.agent.reward = reward
+        if self.deep:
+            self.agent.done = True
 
     def draw_grid(self):
         grid_size = 25  # 500 / 20 = 25 pixel grid
@@ -135,44 +149,9 @@ class Game:
             pygame.draw.line(self.screen, color, (0, y), (self.width, y))
         pygame.draw.line(self.screen, color, (self.width, 0), (self.width, self.height))
 
-    def draw_headings(self):
-        font = pygame.font.Font('freesansbold.ttf', 26)
-        text_color = (50,50, 255)
-        bg_colour= (255,255,255)
-
-        score = font.render(f'SCORE: {int(self.score)}', True,text_color, bg_colour)
-        textRect = score.get_rect()
-        textRect.topleft = (self.width + 10, 10)
-        # Text
-        self.screen.blit(score, textRect)
-
-        highscore = font.render(f'HIGH: {int(self.high_score)}', True, text_color, bg_colour)
-        textRect = score.get_rect()
-        textRect.topleft = (self.width+10, 50)
-        self.screen.blit(highscore, textRect)
-
-        health = font.render(f'HP: {int(self.entities["player"].sprites()[0].hp)}', True, text_color, bg_colour)
-        textRect = score.get_rect()
-        textRect.topleft = (self.width+10, 90)
-        self.screen.blit(health, textRect)
-
-        electrons = font.render(f'ELECTR: {self.electrons_collected}', True, text_color, bg_colour)
-        textRect = score.get_rect()
-        textRect.topleft = (self.width+10, 130)
-        self.screen.blit(electrons, textRect)
-
-        deaths = font.render(f'DEATHS: {self.deaths}', True, text_color, bg_colour)
-        textRect = score.get_rect()
-        textRect.topleft = (self.width+10, 170)
-        self.screen.blit(deaths, textRect)
-
-        el_pre_death = font.render(f'E PRE D: {self.latest_electrons_pre_death}', True, text_color, bg_colour)
-        textRect = score.get_rect()
-        textRect.topleft = (self.width+10, 210)
-        self.screen.blit(el_pre_death, textRect)
-
-
     def update(self, dt, event_list) -> None:
+        if len(self.entities['blackholes'].sprites()) < 6:
+            self.director.spawn_blackhole()
         self.entities['blackholes'].update(dt)
         self.entities['player'].update(event_list, dt)
 
@@ -187,8 +166,6 @@ class Game:
         self.entities['player'].draw(self.screen)
         self.entities['electron'].draw(self.screen)
         # self.entities['shield'].draw(self.screen)
-
-
 
     def reset(self):
         '''Reset the game state'''
@@ -205,20 +182,24 @@ class Game:
 
     def train(self):
         for i in range(self.episodes):
+
             prog = int(i / self.episodes * 100)
-            # if prog % 10 == 0:
-            #     f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
-            #     pickle.dump(self.agent.qTable, f)
-            #     f.close()
 
             print(f"TRAINING PROGRESS: --- {prog}%")
             self.update(0, [])
             self.calculate_reward()
+            if self.deep:
+                self.agent.replay()
 
-        f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
-        pickle.dump(self.agent.qTable, f)
-        f.close()
-        print(f"Training Complete. Q-table saved to qtables/qtable{str(self.seed)}.b. Terminal Values: Electrons: {self.electrons_collected}, Deaths: {self.deaths}, High Score: {self.high_score}")
+        if not self.deep:
+            f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
+            pickle.dump(self.agent.qTable, f)
+            f.close()
+            print(f"Training Complete. Q-table saved to qtables/qtable{str(self.seed)}.b. Terminal Values: Electrons: {self.electrons_collected}, Deaths: {self.deaths}, High Score: {self.high_score}")
+        else:
+            if self.training:
+                self.agent.save()
+                print(f"Training Complete. Q-table saved to qtables/DQN{str(self.seed)}.b. Terminal Values: Electrons: {self.electrons_collected}, Deaths: {self.deaths}, High Score: {self.high_score}")
 
     def infer(self):
         self.run = True
@@ -258,3 +239,39 @@ class Game:
            self.train()
         else:
            self.infer()
+
+    def draw_headings(self):
+        font = pygame.font.Font('freesansbold.ttf', 26)
+        text_color = (50,50, 255)
+        bg_colour= (255,255,255)
+
+        score = font.render(f'SCORE: {int(self.score)}', True,text_color, bg_colour)
+        textRect = score.get_rect()
+        textRect.topleft = (self.width + 10, 10)
+        # Text
+        self.screen.blit(score, textRect)
+
+        highscore = font.render(f'HIGH: {int(self.high_score)}', True, text_color, bg_colour)
+        textRect = score.get_rect()
+        textRect.topleft = (self.width+10, 50)
+        self.screen.blit(highscore, textRect)
+
+        health = font.render(f'HP: {int(self.entities["player"].sprites()[0].hp)}', True, text_color, bg_colour)
+        textRect = score.get_rect()
+        textRect.topleft = (self.width+10, 90)
+        self.screen.blit(health, textRect)
+
+        electrons = font.render(f'ELECTR: {self.electrons_collected}', True, text_color, bg_colour)
+        textRect = score.get_rect()
+        textRect.topleft = (self.width+10, 130)
+        self.screen.blit(electrons, textRect)
+
+        deaths = font.render(f'DEATHS: {self.deaths}', True, text_color, bg_colour)
+        textRect = score.get_rect()
+        textRect.topleft = (self.width+10, 170)
+        self.screen.blit(deaths, textRect)
+
+        el_pre_death = font.render(f'E PRE D: {self.latest_electrons_pre_death}', True, text_color, bg_colour)
+        textRect = score.get_rect()
+        textRect.topleft = (self.width+10, 210)
+        self.screen.blit(el_pre_death, textRect)
