@@ -41,16 +41,6 @@ class Game:
 
         pygame.init()
 
-    # Highest score 24
-    def get_state_old1(self):
-        '''
-        Player positions, health, blackholes positions, electron position
-        :return:
-        '''
-        player_state = self.entities['player'].sprites()[0].get_state()
-        black_holes_state = tuple(b.get_state() for b in self.entities['blackholes'].sprites())
-        return tuple(chain(player_state, black_holes_state))
-
     def get_state(self):
         '''player position, relative electron position, health in intervals of 10'''
 
@@ -224,7 +214,7 @@ class Game:
         pickle.dump(self.agent.qTable, f)
         f.close()
         print(f"Training Complete. Q-table saved to qtables/qtable{str(seed)}.b. Terminal Values: Electrons: {self.electrons_collected}, Deaths: {self.deaths}, High Score: {self.high_score}")
-        Plot("Streak", "Streak", "Training", self.streak_hist, [i for i in range(len(self.streak_hist))])
+        Plot("Streak", "Training", "Streak", self.streak_hist)
         return self.deaths, self.electrons_collected, self.high_score
 
     def infer(self, seed):

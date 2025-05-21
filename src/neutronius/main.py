@@ -14,7 +14,7 @@ def train(episodes, alpha, gamma, epsilon, seed):
         return
     def do():
         report = g.train(episodes, alpha, gamma, epsilon, seed)
-        showinfo(message=f"Training complete! \n Deaths: {report[0]} \n High Score: {report[1]} \n Episodes: {report[2]}")
+        showinfo(message=f"Training complete! \n Deaths: {report[0]} \n Electrons Collected: {report[1]} \n High Score: {report[2]}")
     threading.Thread(target=do, daemon=True).start()
 
 def infer(seed):
