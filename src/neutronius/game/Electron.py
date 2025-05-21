@@ -4,7 +4,7 @@ from .Entity import Entity
 
 class Electron(Entity):
     def __init__(self, position, screen_width, screen_height):
-        colour = (240,0,80)
+        colour = (178,130,100)
         radius = 8
         velocity = pygame.math.Vector2(0, 0)
         

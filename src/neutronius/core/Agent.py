@@ -6,18 +6,18 @@ from conf.conf import ACTIONS
 import random
 
 class Agent:
-    def __init__(self, get_state: Callable, seed: int):
+    def __init__(self, get_state: Callable, seed: int, eps, gam, alph):
         try:
-            file = f"qtables/qtable{str(seed)}.b"
+            file = f"qtables/qtable{seed}.b"
             f = open(file, "rb")
             print(f"Loading Q-table {file}")
             self._qTable = pickle.load(f)
             f.close()
         except Exception:
             self._qTable = QTable()
-        self._epsilon = 0.2
-        self._alpha = 0.9
-        self._gamma = 0.95
+        self._epsilon = eps
+        self._alpha = gam
+        self._gamma = alph
         self._seed = seed
         self._get_state = get_state
         self._last_state = ()
@@ -27,9 +27,7 @@ class Agent:
         self._actions = ACTIONS
 
     def act(self):
-        action = ''
         state = self._get_state()
-        #print(f"Current state: {state}")
         if not self._training:
             action = self._qTable.get_best_action(state)
             print(f"Performing best action: {action}")
@@ -59,10 +57,23 @@ class Agent:
             self._last_state = state
             self._last_action = action
 
-        # if self._epsilon > 0.2:
-        #     self._epsilon *= 0.999
         return action
 
+    @property
+    def gamma(self):
+        return self._gamma
+
+    @gamma.setter
+    def gamma(self, gamma):
+        self._gamma = gamma
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha):
+        self._alpha = alpha
 
     @property
     def epsilon(self):

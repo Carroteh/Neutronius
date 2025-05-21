@@ -16,22 +16,21 @@ from ..core.Agent import Agent
 
 
 class Game:
-    def __init__(self, width: int, height: int, seed:int, training: bool = False, episodes = 10000000):
+    def __init__(self, width: int, height: int):
         self.width = width
         self.height = height
-        self.screen = pygame.display.set_mode((self.width + 250, self.height), flags=pygame.HWSURFACE)
+        self.screen = None
         self.bg_colour = (255,255,255)
         self.entities = {}
         self.electrons_collected = 0
         self.deaths = 0
-        self.latest_electrons_pre_death = 0
+        self.streak = 0
         self.score = 0
+        self.streak_hist = []
         self.high_score = 0
-        self.episodes = episodes
-        self.seed = seed
-        self.training = training
-        self.agent = Agent(self.get_state, seed)
-        self.agent.training = self.training
+        self.agent = None
+        self.pb = None # progress bar
+        self.stop = False
         self.entities['blackholes'] = pygame.sprite.Group()
         self.entities['player'] = pygame.sprite.Group()
         # self.entities['shield'] = pygame.sprite.Group()
@@ -102,7 +101,8 @@ class Game:
             if self.score > self.high_score:
                 self.high_score = self.score
             reward = -500
-            self.latest_electrons_pre_death = 0
+            self.streak_hist.append(self.streak)
+            self.streak = 0
             self.score = 0
             self.director.spawn_player(self.agent)
         # If the player collides with an electron they get a positive reward
@@ -110,9 +110,9 @@ class Game:
             self.entities['player'].sprites()[0].hp = 100
             self.director.spawn_electron()
             self.electrons_collected += 1
-            self.latest_electrons_pre_death += 1
+            self.streak += 1
             self.score += 20
-            reward = 400
+            reward = 330
         # Other rewards
         else:
             # Reward based on distance from electron
@@ -146,7 +146,7 @@ class Game:
         # Text
         self.screen.blit(score, textRect)
 
-        highscore = font.render(f'HIGH: {int(self.high_score)}', True, text_color, bg_colour)
+        highscore = font.render(f'HIGH SCORE: {int(self.high_score)}', True, text_color, bg_colour)
         textRect = score.get_rect()
         textRect.topleft = (self.width+10, 50)
         self.screen.blit(highscore, textRect)
@@ -156,7 +156,7 @@ class Game:
         textRect.topleft = (self.width+10, 90)
         self.screen.blit(health, textRect)
 
-        electrons = font.render(f'ELECTR: {self.electrons_collected}', True, text_color, bg_colour)
+        electrons = font.render(f'ELECTRONS: {self.electrons_collected}', True, text_color, bg_colour)
         textRect = score.get_rect()
         textRect.topleft = (self.width+10, 130)
         self.screen.blit(electrons, textRect)
@@ -166,7 +166,7 @@ class Game:
         textRect.topleft = (self.width+10, 170)
         self.screen.blit(deaths, textRect)
 
-        el_pre_death = font.render(f'E PRE D: {self.latest_electrons_pre_death}', True, text_color, bg_colour)
+        el_pre_death = font.render(f'STREAK: {self.streak}', True, text_color, bg_colour)
         textRect = score.get_rect()
         textRect.topleft = (self.width+10, 210)
         self.screen.blit(el_pre_death, textRect)
@@ -188,43 +188,55 @@ class Game:
         self.entities['electron'].draw(self.screen)
         # self.entities['shield'].draw(self.screen)
 
-
-
     def reset(self):
         '''Reset the game state'''
         self.entities['blackholes'].empty()
         self.entities['player'].empty()
         self.entities['electron'].empty()
         self.director.spawn_player(self.agent)
+
         for i in range(6):
             self.director.spawn_blackhole()
         self.director.spawn_electron()
         self.electrons_collected = 0
-        self.latest_electrons_pre_death = 0
+        self.streak = 0
         self.score = 0
+        self.deaths = 0
+        self.high_score = 0
 
-    def train(self):
-        for i in range(self.episodes):
-            prog = int(i / self.episodes * 100)
-            # if prog % 10 == 0:
-            #     f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
-            #     pickle.dump(self.agent.qTable, f)
-            #     f.close()
+    def train(self, episodes, alpha, gamma, epsilon, seed):
+        random.seed(seed)
+        self.agent = Agent(self.get_state, seed, epsilon, gamma, alpha)
+        self.agent.training = True
+        self.reset()
+        for i in range(episodes):
+            prog = int(i / episodes * 100)
 
             print(f"TRAINING PROGRESS: --- {prog}%")
+            self.pb.after(0, self.pb.config, {'value': prog})
             self.update(0, [])
             self.calculate_reward()
+            if self.stop:
+                break
 
-        f = open(f"qtables/qtable{str(self.seed)}.b", "wb")
+        self.stop = False
+        f = open(f"qtables/qtable{str(seed)}.b", "wb")
         pickle.dump(self.agent.qTable, f)
         f.close()
-        print(f"Training Complete. Q-table saved to qtables/qtable{str(self.seed)}.b. Terminal Values: Electrons: {self.electrons_collected}, Deaths: {self.deaths}, High Score: {self.high_score}")
+        print(f"Training Complete. Q-table saved to qtables/qtable{str(seed)}.b. Terminal Values: Electrons: {self.electrons_collected}, Deaths: {self.deaths}, High Score: {self.high_score}")
+        Plot("Streak", "Streak", "Training", self.streak_hist, [i for i in range(len(self.streak_hist))])
+        return self.deaths, self.electrons_collected, self.high_score
 
-    def infer(self):
+    def infer(self, seed):
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.width + 250, self.height), flags=pygame.HWSURFACE)
+        random.seed(seed)
+        self.agent = Agent(self.get_state, seed, 0, 0, 0)
+        self.agent.training = False
+        self.reset()
         self.run = True
         fps = 30
         clock = pygame.time.Clock()
-        bg_colour = (255, 255, 255)
 
         while self.run:
             dt = clock.tick(fps)
@@ -233,7 +245,6 @@ class Game:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.run = False
-                    # self.plotter.stop()
 
             key = pygame.key.get_pressed()
             if key[pygame.K_n]:
@@ -252,9 +263,9 @@ class Game:
             pygame.display.update()
         pygame.quit()
 
-    def start(self) -> None:
-        self.reset()
-        if self.training:
-           self.train()
-        else:
-           self.infer()
+    def set_pb(self, pb):
+        self.pb = pb
+
+    def stop_training(self):
+        self.stop = True
+
